@@ -31,7 +31,7 @@ console.log(phoneNumberMask('041999714703'))
 
 export default function Home(): JSX.Element {
   const { control, handleSubmit } = useForm()
-  const [activeStep, setActiveStep] = useState(1)
+  const [activeStep, setActiveStep] = useState(2)
   const [showPassword, setShowPassword] = useState(false)
 
   const onSubmit = (data) => {
@@ -209,51 +209,72 @@ export default function Home(): JSX.Element {
 
           {activeStep === 2 && (
             <>
-              <TextField id='outlined-basic' label='E-mail' variant='outlined' required />
+              <Controller
+                name='email'
+                control={control}
+                render={({ field }) => (
+                  <TextField {...field} id='outlined-basic' label='E-mail' variant='outlined' required />
+                )}
+              />
 
               <FormControl variant='outlined'>
                 <InputLabel htmlFor='outlined-adornment-password'>Senha *</InputLabel>
-                <OutlinedInput
-                  required
-                  id='outlined-adornment-password'
-                  type={showPassword ? 'text' : 'password'}
-                  endAdornment={
-                    <InputAdornment position='end'>
-                      <IconButton
-                        aria-label='toggle password visibility'
-                        onClick={() => {
-                          setShowPassword((state) => !state)
-                        }}
-                        edge='end'
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  }
-                  label='Password'
+                <Controller
+                  name='password'
+                  control={control}
+                  render={({ field }) => (
+                    <OutlinedInput
+                      required
+                      {...field}
+                      id='outlined-adornment-password'
+                      type={showPassword ? 'text' : 'password'}
+                      endAdornment={
+                        <InputAdornment position='end'>
+                          <IconButton
+                            aria-label='toggle password visibility'
+                            onClick={() => {
+                              setShowPassword((state) => !state)
+                            }}
+                            edge='end'
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      }
+                      label='Password'
+                    />
+                  )}
                 />
               </FormControl>
 
               <FormControl variant='outlined'>
                 <InputLabel htmlFor='outlined-adornment-password-confirm'>Confirmar senha *</InputLabel>
-                <OutlinedInput
-                  required
-                  id='outlined-adornment-password-confirm'
-                  type={showPassword ? 'text' : 'password'}
-                  endAdornment={
-                    <InputAdornment position='end'>
-                      <IconButton
-                        aria-label='toggle password visibility'
-                        onClick={() => {
-                          setShowPassword((state) => !state)
-                        }}
-                        edge='end'
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  }
-                  label='Password'
+
+                <Controller
+                  name='passwordConfirm'
+                  control={control}
+                  render={({ field }) => (
+                    <OutlinedInput
+                      required
+                      {...field}
+                      id='outlined-adornment-password-confirm'
+                      type={showPassword ? 'text' : 'password'}
+                      endAdornment={
+                        <InputAdornment position='end'>
+                          <IconButton
+                            aria-label='toggle password visibility'
+                            onClick={() => {
+                              setShowPassword((state) => !state)
+                            }}
+                            edge='end'
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      }
+                      label='Password'
+                    />
+                  )}
                 />
               </FormControl>
             </>
