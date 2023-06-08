@@ -5,7 +5,7 @@ export function phoneNumberMask(number: string): any {
 
   mask.unmaskedValue = number
 
-  console.log(mask.isComplete)
+  // console.log(mask.isComplete)
 
   return mask.value;
 }
@@ -14,6 +14,14 @@ export function cpfMask(cpf: string): any {
   const mask = new IMask.MaskedPattern({mask: '000.000.000-00'})
 
   mask.unmaskedValue = cpf
+
+  return mask.value;
+}
+
+export function cepMask(cep: string): any {
+  const mask = new IMask.MaskedPattern({mask: '000000-000'})
+
+  mask.unmaskedValue = cep
 
   return mask.value;
 }
