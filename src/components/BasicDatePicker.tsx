@@ -4,11 +4,11 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
-export default function BasicDatePicker(): JSX.Element {
+export default function BasicDatePicker({fields}: {fields: any}): JSX.Element {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <DemoContainer components={['DatePicker']}>
-        <DatePicker label='Data de nascimento' />
+        <DatePicker {...fields} label='Data de nascimento' />
       </DemoContainer>
     </LocalizationProvider>
   );
