@@ -26,65 +26,83 @@ import Visibility from '@mui/icons-material/Visibility'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 
 const steps = ['Dados Pessoas', 'Endereço', 'Informações de acesso']
 console.log(phoneNumberMask('041999714703'))
 
-const schemaForm = z.object({
-  personal: z.object({
-    firstName: z
-      .string()
-      .min(4, 'Insira um nome válido')
-      .regex(/^[\ul]+$/, 'Só pode conter letras'),
-    lastName: z
-      .string()
-      .min(10, 'Insira um nome válido')
-      .regex(/^[\ul]+$/, 'Só pode conter letras'),
-    phone: z
-      .string().
-      length(9, 'Quantidade de digítos inválidos')
-      .regex(/^\d+$/, 'Só pode conter números'),
-    cpf: z
-      .string()
-      .length(11, 'Insira um cpf válido'),
-    bornDate: z.date(),
-    gender: z.enum(['male', 'female', 'other'])
-  }),
-  address: z.object({
-    cep: z.string().length(8, 'Insira um cep válido'),
-    city: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
-    uf: z.string().length(2, 'Insira uma UF valida'),
-    district: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
-    street: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
-    streetNumber: z.string().regex(/^\d+$/, 'Só pode conter números'),
-    complement: z.string().max(60, 'Quantidade de digitos ultrapassou o limite').optional(),
-  }),
-  account: z.object({
-    email: z.string().email('Insira um e-mail válido'),
-    password: z.string(),
-    passwordConfirm: z.string(),
+const schemaForm = z
+  .object({
+    personal: z.object({
+      firstName: z
+        .string()
+        .min(4, 'Insira um nome válido')
+        .regex(/^[a-z][A-Z]+$/, 'Só pode conter letras'),
+      lastName: z
+        .string()
+        .min(10, 'Insira um nome válido')
+        .regex(/^[\ul]+$/, 'Só pode conter letras'),
+      phone: z.string().length(11, 'Quantidade de digítos inválidos').regex(/^\d+$/, 'Só pode conter números'),
+      cpf: z.string().length(11, 'Insira um cpf válido'),
+      bornDate: z.date(),
+      gender: z.enum(['male', 'female', 'other']),
+    }),
+    address: z.object({
+      cep: z.string().length(8, 'Insira um cep válido'),
+      city: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
+      uf: z.string().length(2, 'Insira uma UF valida'),
+      district: z
+        .string()
+        .min(3, 'Tamanho minimo desse campo e 3')
+        .max(60, 'Quantidade de digitos ultrapassou o limite'),
+      street: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
+      streetNumber: z.string().regex(/^\d+$/, 'Só pode conter números'),
+      complement: z.string().max(60, 'Quantidade de digitos ultrapassou o limite').optional(),
+    }),
+    account: z.object({
+      email: z.string().email('Insira um e-mail válido'),
+      password: z.string(),
+      passwordConfirm: z.string(),
+    }),
   })
-}).refine((data) => data.account.password === data.account.passwordConfirm, {
-  message: "As senhas não conferem",
-  path: ["confirm"], // path of error
-});
+  .refine((data) => data.account.password === data.account.passwordConfirm, {
+    message: 'As senhas não conferem',
+    path: ['confirm'], // path of error
+  })
 
 type FormProps = z.infer<typeof schemaForm>
 
-export default function Home(): JSX.Element {
-  const { control, handleSubmit } = useForm<FormProps>()
-  const [activeStep, setActiveStep] = useState(1)
-  const [showPassword, setShowPassword] = useState(false)
+const stepToFormProp: ['personal', 'address', 'account'] = ['personal', 'address', 'account']
 
-  const onSubmit = (data) => {
+export default function Home(): JSX.Element {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormProps>({ resolver: zodResolver(schemaForm) })
+
+  const [activeStep, setActiveStep] = useState(0)
+  const [showPassword, setShowPassword] = useState(false)
+  console.log(errors)
+
+  const onSubmit = async (data: FormProps): Promise<void> => {
+    console.log(data)
+    for (const prop in data[stepToFormProp[activeStep]]) {
+      if (typeof prop === 'undefined') {
+        // avisar que os dados nao foram preenchidos
+        return
+      }
+    }
+    if (activeStep !== 2) {
+      handleNextActiveStep()
+      return
+    }
+
     console.log(data)
   }
 
   const handleNextActiveStep = (): void => {
     setActiveStep((state) => state + 1)
-    if (activeStep === 3) {
-      // executar função de finalização
-    }
   }
 
   const handlePrevActiveStep = (): void => {
@@ -114,8 +132,8 @@ export default function Home(): JSX.Element {
                   <TextField
                     {...field}
                     id='outlined-basic'
-                    error
-                    helperText='Só pode conter letras'
+                    error={errors?.personal?.firstName !== undefined}
+                    helperText={errors?.personal?.firstName?.message ?? ''}
                     label='Nome'
                     variant='outlined'
                     required
@@ -126,7 +144,15 @@ export default function Home(): JSX.Element {
                 name='personal.lastName'
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} id='outlined-basic' label='Sobrenome' variant='outlined' required />
+                  <TextField
+                    {...field}
+                    error={errors?.personal?.lastName !== undefined}
+                    helperText={errors?.personal?.lastName?.message ?? ''}
+                    id='outlined-basic'
+                    label='Sobrenome'
+                    variant='outlined'
+                    required
+                  />
                 )}
               />
 
@@ -143,6 +169,8 @@ export default function Home(): JSX.Element {
                     }} */
                     id='outlined-require'
                     label='Telefone'
+                    error={errors?.personal?.phone !== undefined}
+                    helperText={errors?.personal?.phone?.message ?? ''}
                     required
                   />
                 )}
@@ -157,6 +185,8 @@ export default function Home(): JSX.Element {
                     id='outlined-basic'
                     label='CPF'
                     variant='outlined'
+                    error={errors?.personal?.cpf !== undefined}
+                    helperText={errors?.personal?.cpf?.message ?? ''}
                     required
                     /* value={cpfMask(cpf)}
                     onChange={(e) => {
@@ -201,49 +231,104 @@ export default function Home(): JSX.Element {
                 name='address.cep'
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} id='outlined-basic' label='CEP' variant='outlined' required />
+                  <TextField
+                    {...field}
+                    error={errors?.address?.cep !== undefined}
+                    helperText={errors?.address?.cep?.message ?? ''}
+                    id='outlined-basic'
+                    label='CEP'
+                    variant='outlined'
+                    required
+                  />
                 )}
               />
               <Controller
                 name='address.city'
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} id='outlined-basic' label='Cidade' variant='outlined' required />
+                  <TextField
+                    {...field}
+                    error={errors?.address?.city !== undefined}
+                    helperText={errors?.address?.city?.message ?? ''}
+                    id='outlined-basic'
+                    label='Cidade'
+                    variant='outlined'
+                    required
+                  />
                 )}
               />
               <Controller
                 name='address.uf'
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} id='outlined-basic' label='UF' variant='outlined' required />
+                  <TextField
+                    {...field}
+                    error={errors?.address?.uf !== undefined}
+                    helperText={errors?.address?.uf?.message ?? ''}
+                    id='outlined-basic'
+                    label='UF'
+                    variant='outlined'
+                    required
+                  />
                 )}
               />
               <Controller
                 name='address.district'
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} id='outlined-basic' label='Bairro' variant='outlined' required />
+                  <TextField
+                    {...field}
+                    error={errors?.address?.district !== undefined}
+                    helperText={errors?.address?.district?.message ?? ''}
+                    id='outlined-basic'
+                    label='Bairro'
+                    variant='outlined'
+                    required
+                  />
                 )}
               />
               <Controller
                 name='address.street'
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} id='outlined-basic' label='Rua' variant='outlined' required />
+                  <TextField
+                    {...field}
+                    error={errors?.address?.street !== undefined}
+                    helperText={errors?.address?.street?.message ?? ''}
+                    id='outlined-basic'
+                    label='Rua'
+                    variant='outlined'
+                    required
+                  />
                 )}
               />
               <Controller
                 name='address.streetNumber'
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} id='outlined-basic' label='Número' variant='outlined' required />
+                  <TextField
+                    {...field}
+                    error={errors?.address?.streetNumber !== undefined}
+                    helperText={errors?.address?.streetNumber?.message ?? ''}
+                    id='outlined-basic'
+                    label='Número'
+                    variant='outlined'
+                    required
+                  />
                 )}
               />
               <Controller
                 name='address.complement'
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} id='outlined-basic' label='Complemento' variant='outlined' />
+                  <TextField
+                    {...field}
+                    error={errors?.address?.complement !== undefined}
+                    helperText={errors?.address?.complement?.message ?? ''}
+                    id='outlined-basic'
+                    label='Complemento'
+                    variant='outlined'
+                  />
                 )}
               />
             </>
@@ -255,7 +340,15 @@ export default function Home(): JSX.Element {
                 name='account.email'
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} id='outlined-basic' label='E-mail' variant='outlined' required />
+                  <TextField
+                    {...field}
+                    error={errors?.account?.email !== undefined}
+                    helperText={errors?.account?.email?.message ?? ''}
+                    id='outlined-basic'
+                    label='E-mail'
+                    variant='outlined'
+                    required
+                  />
                 )}
               />
 
@@ -268,6 +361,8 @@ export default function Home(): JSX.Element {
                     <OutlinedInput
                       required
                       {...field}
+                      error={errors?.account?.password !== undefined}
+                      helperText={errors?.account?.password?.message ?? ''}
                       id='outlined-adornment-password'
                       type={showPassword ? 'text' : 'password'}
                       endAdornment={
@@ -299,6 +394,8 @@ export default function Home(): JSX.Element {
                     <OutlinedInput
                       required
                       {...field}
+                      error={errors?.account?.passwordConfirm !== undefined}
+                      helperText={errors?.account?.passwordConfirm?.message ?? ''}
                       id='outlined-adornment-password-confirm'
                       type={showPassword ? 'text' : 'password'}
                       endAdornment={
@@ -324,9 +421,7 @@ export default function Home(): JSX.Element {
 
           <div className='flex gap-8 justify-end'>
             {activeStep !== 0 && <Button onClick={handlePrevActiveStep}>Voltar</Button>}
-            <Button type={activeStep === 2 ? 'submit': 'button'} onClick={handleNextActiveStep}>
-              {activeStep === steps.length - 1 ? 'Finalizar' : 'Proximo'}
-            </Button>
+            <Button type={'submit'}>{activeStep === steps.length - 1 ? 'Finalizar' : 'Proximo'}</Button>
           </div>
         </form>
       </Stack>
