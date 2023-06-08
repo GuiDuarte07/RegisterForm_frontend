@@ -25,13 +25,55 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import Visibility from '@mui/icons-material/Visibility'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { z } from 'zod'
 
 const steps = ['Dados Pessoas', 'Endereço', 'Informações de acesso']
 console.log(phoneNumberMask('041999714703'))
 
+const schemaForm = z.object({
+  personal: z.object({
+    firstName: z
+      .string()
+      .min(4, 'Insira um nome válido')
+      .regex(/^[\ul]+$/, 'Só pode conter letras'),
+    lastName: z
+      .string()
+      .min(10, 'Insira um nome válido')
+      .regex(/^[\ul]+$/, 'Só pode conter letras'),
+    phone: z
+      .string().
+      length(9, 'Quantidade de digítos inválidos')
+      .regex(/^\d+$/, 'Só pode conter números'),
+    cpf: z
+      .string()
+      .length(11, 'Insira um cpf válido'),
+    bornDate: z.date(),
+    gender: z.enum(['male', 'female', 'other'])
+  }),
+  address: z.object({
+    cep: z.string().length(8, 'Insira um cep válido'),
+    city: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
+    uf: z.string().length(2, 'Insira uma UF valida'),
+    district: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
+    street: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
+    streetNumber: z.string().regex(/^\d+$/, 'Só pode conter números'),
+    complement: z.string().max(60, 'Quantidade de digitos ultrapassou o limite').optional(),
+  }),
+  account: z.object({
+    email: z.string().email('Insira um e-mail válido'),
+    password: z.string(),
+    passwordConfirm: z.string(),
+  })
+}).refine((data) => data.account.password === data.account.passwordConfirm, {
+  message: "As senhas não conferem",
+  path: ["confirm"], // path of error
+});
+
+type FormProps = z.infer<typeof schemaForm>
+
 export default function Home(): JSX.Element {
-  const { control, handleSubmit } = useForm()
-  const [activeStep, setActiveStep] = useState(2)
+  const { control, handleSubmit } = useForm<FormProps>()
+  const [activeStep, setActiveStep] = useState(1)
   const [showPassword, setShowPassword] = useState(false)
 
   const onSubmit = (data) => {
@@ -66,7 +108,7 @@ export default function Home(): JSX.Element {
           {activeStep === 0 && (
             <>
               <Controller
-                name='firstName'
+                name='personal.firstName'
                 control={control}
                 render={({ field }) => (
                   <TextField
@@ -81,7 +123,7 @@ export default function Home(): JSX.Element {
                 )}
               />
               <Controller
-                name='lastName'
+                name='personal.lastName'
                 control={control}
                 render={({ field }) => (
                   <TextField {...field} id='outlined-basic' label='Sobrenome' variant='outlined' required />
@@ -89,7 +131,7 @@ export default function Home(): JSX.Element {
               />
 
               <Controller
-                name='phone'
+                name='personal.phone'
                 control={control}
                 render={({ field }) => (
                   <TextField
@@ -107,7 +149,7 @@ export default function Home(): JSX.Element {
               />
 
               <Controller
-                name='cpf'
+                name='personal.cpf'
                 control={control}
                 render={({ field }) => (
                   <TextField
@@ -125,7 +167,7 @@ export default function Home(): JSX.Element {
               />
 
               <Controller
-                name='bornDate'
+                name='personal.bornDate'
                 control={control}
                 render={({ field }) => <BasicDatePicker fields={field} />}
               />
@@ -133,7 +175,7 @@ export default function Home(): JSX.Element {
               <FormControl>
                 <FormLabel id='demo-radio-buttons-group-label'>Gênero</FormLabel>
                 <Controller
-                  name='gender'
+                  name='personal.gender'
                   control={control}
                   render={({ field }) => (
                     <RadioGroup
@@ -156,49 +198,49 @@ export default function Home(): JSX.Element {
           {activeStep === 1 && (
             <>
               <Controller
-                name='cep'
+                name='address.cep'
                 control={control}
                 render={({ field }) => (
                   <TextField {...field} id='outlined-basic' label='CEP' variant='outlined' required />
                 )}
               />
               <Controller
-                name='city'
+                name='address.city'
                 control={control}
                 render={({ field }) => (
                   <TextField {...field} id='outlined-basic' label='Cidade' variant='outlined' required />
                 )}
               />
               <Controller
-                name='uf'
+                name='address.uf'
                 control={control}
                 render={({ field }) => (
                   <TextField {...field} id='outlined-basic' label='UF' variant='outlined' required />
                 )}
               />
               <Controller
-                name='neighborhood'
+                name='address.district'
                 control={control}
                 render={({ field }) => (
                   <TextField {...field} id='outlined-basic' label='Bairro' variant='outlined' required />
                 )}
               />
               <Controller
-                name='street'
+                name='address.street'
                 control={control}
                 render={({ field }) => (
                   <TextField {...field} id='outlined-basic' label='Rua' variant='outlined' required />
                 )}
               />
               <Controller
-                name='streetNumber'
+                name='address.streetNumber'
                 control={control}
                 render={({ field }) => (
                   <TextField {...field} id='outlined-basic' label='Número' variant='outlined' required />
                 )}
               />
               <Controller
-                name='complement'
+                name='address.complement'
                 control={control}
                 render={({ field }) => (
                   <TextField {...field} id='outlined-basic' label='Complemento' variant='outlined' />
@@ -210,7 +252,7 @@ export default function Home(): JSX.Element {
           {activeStep === 2 && (
             <>
               <Controller
-                name='email'
+                name='account.email'
                 control={control}
                 render={({ field }) => (
                   <TextField {...field} id='outlined-basic' label='E-mail' variant='outlined' required />
@@ -220,7 +262,7 @@ export default function Home(): JSX.Element {
               <FormControl variant='outlined'>
                 <InputLabel htmlFor='outlined-adornment-password'>Senha *</InputLabel>
                 <Controller
-                  name='password'
+                  name='account.password'
                   control={control}
                   render={({ field }) => (
                     <OutlinedInput
@@ -251,7 +293,7 @@ export default function Home(): JSX.Element {
                 <InputLabel htmlFor='outlined-adornment-password-confirm'>Confirmar senha *</InputLabel>
 
                 <Controller
-                  name='passwordConfirm'
+                  name='account.passwordConfirm'
                   control={control}
                   render={({ field }) => (
                     <OutlinedInput
@@ -282,7 +324,7 @@ export default function Home(): JSX.Element {
 
           <div className='flex gap-8 justify-end'>
             {activeStep !== 0 && <Button onClick={handlePrevActiveStep}>Voltar</Button>}
-            <Button type='submit' /* onClick={handleNextActiveStep} */>
+            <Button type={activeStep === 2 ? 'submit': 'button'} onClick={handleNextActiveStep}>
               {activeStep === steps.length - 1 ? 'Finalizar' : 'Proximo'}
             </Button>
           </div>
