@@ -31,7 +31,7 @@ console.log(phoneNumberMask('041999714703'))
 
 export default function Home(): JSX.Element {
   const { control, handleSubmit } = useForm()
-  const [activeStep, setActiveStep] = useState(0)
+  const [activeStep, setActiveStep] = useState(1)
   const [showPassword, setShowPassword] = useState(false)
 
   const onSubmit = (data) => {
@@ -124,7 +124,11 @@ export default function Home(): JSX.Element {
                 )}
               />
 
-              <Controller name='bornDate' control={control} render={({ field }) => <BasicDatePicker fields={field} />} />
+              <Controller
+                name='bornDate'
+                control={control}
+                render={({ field }) => <BasicDatePicker fields={field} />}
+              />
 
               <FormControl>
                 <FormLabel id='demo-radio-buttons-group-label'>Gênero</FormLabel>
@@ -151,13 +155,55 @@ export default function Home(): JSX.Element {
 
           {activeStep === 1 && (
             <>
-              <TextField id='outlined-basic' label='CEP' variant='outlined' required />
-              <TextField id='outlined-basic' label='Cidade' variant='outlined' required />
-              <TextField id='outlined-basic' label='UF' variant='outlined' required />
-              <TextField id='outlined-basic' label='Bairro' variant='outlined' required />
-              <TextField id='outlined-basic' label='Rua' variant='outlined' required />
-              <TextField id='outlined-basic' label='Número' variant='outlined' required />
-              <TextField id='outlined-basic' label='Complemento' variant='outlined' />
+              <Controller
+                name='cep'
+                control={control}
+                render={({ field }) => (
+                  <TextField {...field} id='outlined-basic' label='CEP' variant='outlined' required />
+                )}
+              />
+              <Controller
+                name='city'
+                control={control}
+                render={({ field }) => (
+                  <TextField {...field} id='outlined-basic' label='Cidade' variant='outlined' required />
+                )}
+              />
+              <Controller
+                name='uf'
+                control={control}
+                render={({ field }) => (
+                  <TextField {...field} id='outlined-basic' label='UF' variant='outlined' required />
+                )}
+              />
+              <Controller
+                name='neighborhood'
+                control={control}
+                render={({ field }) => (
+                  <TextField {...field} id='outlined-basic' label='Bairro' variant='outlined' required />
+                )}
+              />
+              <Controller
+                name='street'
+                control={control}
+                render={({ field }) => (
+                  <TextField {...field} id='outlined-basic' label='Rua' variant='outlined' required />
+                )}
+              />
+              <Controller
+                name='streetNumber'
+                control={control}
+                render={({ field }) => (
+                  <TextField {...field} id='outlined-basic' label='Número' variant='outlined' required />
+                )}
+              />
+              <Controller
+                name='complement'
+                control={control}
+                render={({ field }) => (
+                  <TextField {...field} id='outlined-basic' label='Complemento' variant='outlined' />
+                )}
+              />
             </>
           )}
 
