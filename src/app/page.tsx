@@ -7,6 +7,7 @@ import {
   Button,
   FormControl,
   FormControlLabel,
+  FormHelperText,
   FormLabel,
   Grid,
   IconButton,
@@ -24,12 +25,11 @@ import {
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import Visibility from '@mui/icons-material/Visibility'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, type SubmitHandler, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 const steps = ['Dados Pessoas', 'Endereço', 'Informações de acesso']
-console.log(phoneNumberMask('041999714703'))
 
 const schemaForm = z
   .object({
@@ -37,14 +37,14 @@ const schemaForm = z
       firstName: z
         .string()
         .min(4, 'Insira um nome válido')
-        .regex(/^[a-z][A-Z]+$/, 'Só pode conter letras'),
+        .regex(/[\p{Letter}\s]+/gu, 'Só pode conter letras'),
       lastName: z
         .string()
-        .min(10, 'Insira um nome válido')
-        .regex(/^[\ul]+$/, 'Só pode conter letras'),
+        .min(4, 'Insira um nome válido')
+        .regex(/[\p{Letter}\s]+/gu, 'Só pode conter letras'),
       phone: z.string().length(11, 'Quantidade de digítos inválidos').regex(/^\d+$/, 'Só pode conter números'),
       cpf: z.string().length(11, 'Insira um cpf válido'),
-      bornDate: z.date(),
+      bornDate: z.any(),
       gender: z.enum(['male', 'female', 'other']),
     }),
     address: z.object({
@@ -67,7 +67,7 @@ const schemaForm = z
   })
   .refine((data) => data.account.password === data.account.passwordConfirm, {
     message: 'As senhas não conferem',
-    path: ['confirm'], // path of error
+    path: ['account.passwordConfirm'], // path of error
   })
 
 type FormProps = z.infer<typeof schemaForm>
@@ -85,19 +85,20 @@ export default function Home(): JSX.Element {
   const [showPassword, setShowPassword] = useState(false)
   console.log(errors)
 
-  const onSubmit = async (data: FormProps): Promise<void> => {
-    console.log(data)
-    for (const prop in data[stepToFormProp[activeStep]]) {
-      if (typeof prop === 'undefined') {
-        // avisar que os dados nao foram preenchidos
-        return
-      }
-    }
+  const onSubmitError = (): void => {
+    console.log('errou')
+    console.log(errors[stepToFormProp[activeStep]])
+    if (errors[stepToFormProp[activeStep]] !== undefined) return
+
+    handleNextActiveStep()
+  }
+
+  const onSubmit: SubmitHandler<FormProps> = (data) => {
     if (activeStep !== 2) {
       handleNextActiveStep()
       return
     }
-
+    console.log('tudo certo')
     console.log(data)
   }
 
@@ -122,7 +123,7 @@ export default function Home(): JSX.Element {
           ))}
         </Stepper>
 
-        <form className='flex gap-2 flex-col my-8' onSubmit={handleSubmit(onSubmit)}>
+        <form className='flex gap-2 flex-col my-8' onSubmit={handleSubmit(onSubmit, onSubmitError)}>
           {activeStep === 0 && (
             <>
               <Controller
@@ -361,8 +362,6 @@ export default function Home(): JSX.Element {
                     <OutlinedInput
                       required
                       {...field}
-                      error={errors?.account?.password !== undefined}
-                      helperText={errors?.account?.password?.message ?? ''}
                       id='outlined-adornment-password'
                       type={showPassword ? 'text' : 'password'}
                       endAdornment={
@@ -394,8 +393,6 @@ export default function Home(): JSX.Element {
                     <OutlinedInput
                       required
                       {...field}
-                      error={errors?.account?.passwordConfirm !== undefined}
-                      helperText={errors?.account?.passwordConfirm?.message ?? ''}
                       id='outlined-adornment-password-confirm'
                       type={showPassword ? 'text' : 'password'}
                       endAdornment={
@@ -416,12 +413,16 @@ export default function Home(): JSX.Element {
                   )}
                 />
               </FormControl>
+
+              <FormHelperText error={errors?.account?.password === undefined ? true : errors?.account?.passwordConfirm !== undefined}>
+                {errors?.account?.password?.message  ?? errors?.account?.passwordConfirm?.message ?? ''}
+              </FormHelperText>
             </>
           )}
 
           <div className='flex gap-8 justify-end'>
             {activeStep !== 0 && <Button onClick={handlePrevActiveStep}>Voltar</Button>}
-            <Button type={'submit'}>{activeStep === steps.length - 1 ? 'Finalizar' : 'Proximo'}</Button>
+            <Button type='submit' >{activeStep === steps.length - 1 ? 'Finalizar' : 'Proximo'}</Button>
           </div>
         </form>
       </Stack>
