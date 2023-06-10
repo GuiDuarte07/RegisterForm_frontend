@@ -1,30 +1,25 @@
-import IMask from 'imask';
+import IMask from 'imask'
 
-export function phoneNumberMask(number: string): any {
-  const mask = new IMask.MaskedPattern({mask: '+(000)[0]0000-0000'})
+export function phoneNumberMask(number: string): IMask.MaskedPattern<string> {
+  const mask = new IMask.MaskedPattern({ mask: '(00) 00000-0000' })
 
-  mask.unmaskedValue = number
+  mask.unmaskedValue = number ?? ''
 
-  // console.log(mask.isComplete)
-
-  return mask.value;
+  return mask
 }
 
-export function cpfMask(cpf: string): any {
-  const mask = new IMask.MaskedPattern({mask: '000.000.000-00'})
+export function cpfMask(cpf: string): IMask.MaskedPattern<string> {
+  const mask = new IMask.MaskedPattern({ mask: '000.000.000-00' })
 
-  mask.unmaskedValue = cpf
+  mask.unmaskedValue = cpf ?? ''
 
-  return mask.value;
+  return mask
 }
 
-export function cepMask(cep: string): any {
-  const mask = new IMask.MaskedPattern({mask: '000000-000'})
+export function cepMask(cep: string): IMask.MaskedPattern<string> {
+  const mask = new IMask.MaskedPattern({ mask: '00000-000' })
 
-  mask.unmaskedValue = cep
+  mask.unmaskedValue = cep ?? ''
 
-  return mask.value;
+  return mask
 }
-
-
-

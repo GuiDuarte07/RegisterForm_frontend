@@ -18,10 +18,12 @@
         "react"
     ],
     "rules": {
-        "prettier/prettier": "error",
+        "prettier/prettier": "default",
         "import/prefer-default-export": "off",
         "jsx-quotes": ["error", "prefer-single"],
         "react/react-in-jsx-scope": "off",
-        "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx", ".ts", ".tsx"] }]
+        "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx", ".ts", ".tsx"] }],
+        "@typescript-eslint/no-misused-promises": "off"
+        
     }
 }

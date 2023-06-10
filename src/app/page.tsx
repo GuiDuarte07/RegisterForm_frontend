@@ -1,7 +1,7 @@
 'use client'
 
 import BasicDatePicker from '@/components/BasicDatePicker'
-import { cpfMask, phoneNumberMask } from '@/utils/mask'
+import { cepMask, cpfMask, phoneNumberMask } from '@/utils/mask'
 
 import {
   Button,
@@ -24,7 +24,7 @@ import {
 } from '@mui/material'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import Visibility from '@mui/icons-material/Visibility'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Controller, type SubmitHandler, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -42,13 +42,13 @@ const schemaForm = z
         .string()
         .min(4, 'Insira um nome válido')
         .regex(/[\p{Letter}\s]+/gu, 'Só pode conter letras'),
-      phone: z.string().length(11, 'Quantidade de digítos inválidos').regex(/^\d+$/, 'Só pode conter números'),
-      cpf: z.string().length(11, 'Insira um cpf válido'),
+      phone: z.string().refine(arg => phoneNumberMask(arg).isComplete as boolean, {path: ['personal.phone'], message:'O número precisa ser válido'}),
+      cpf: z.string().refine(arg => cpfMask(arg).isComplete as boolean, {path: ['personal.cpf'], message:'O CPF precisa ser válido'}),
       bornDate: z.any(),
       gender: z.enum(['male', 'female', 'other']),
     }),
     address: z.object({
-      cep: z.string().length(8, 'Insira um cep válido'),
+      cep: z.string().refine(arg => phoneNumberMask(arg).isComplete as boolean, {path: ['address.cep'], message:'O número precisa ser válido'}),
       city: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
       uf: z.string().length(2, 'Insira uma UF valida'),
       district: z
@@ -78,19 +78,28 @@ export default function Home(): JSX.Element {
   const {
     control,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormProps>({ resolver: zodResolver(schemaForm) })
 
+  const phoneValue = watch('personal.phone');
+  const cpfValue = watch('personal.cpf')
+  const cepValue = watch('address.cep')
+
+  useEffect(() => setValue('personal.phone', phoneNumberMask(phoneValue).value), [phoneValue])
+  useEffect(() => setValue('personal.cpf', cpfMask(cpfValue).value), [cpfValue])
+  useEffect(() => setValue('address.cep', cepMask(cepValue).value), [cepValue])
+  
   const [activeStep, setActiveStep] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
-  console.log(errors)
 
   const onSubmitError = (): void => {
-    console.log('errou')
     console.log(errors[stepToFormProp[activeStep]])
     if (errors[stepToFormProp[activeStep]] !== undefined) return
 
-    handleNextActiveStep()
+    if (activeStep !== 2) handleNextActiveStep()
+    
   }
 
   const onSubmit: SubmitHandler<FormProps> = (data) => {
@@ -349,6 +358,7 @@ export default function Home(): JSX.Element {
                     label='E-mail'
                     variant='outlined'
                     required
+                    type='email'
                   />
                 )}
               />
