@@ -28,6 +28,7 @@ import { useEffect, useState } from 'react'
 import { Controller, type SubmitHandler, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import dayjs from 'dayjs'
 
 const steps = ['Dados Pessoas', 'Endereço', 'Informações de acesso']
 
@@ -42,13 +43,13 @@ const schemaForm = z
         .string()
         .min(4, 'Insira um nome válido')
         .regex(/[\p{Letter}\s]+/gu, 'Só pode conter letras'),
-      phone: z.string().refine(arg => phoneNumberMask(arg).isComplete as boolean, {path: ['personal.phone'], message:'O número precisa ser válido'}),
-      cpf: z.string().refine(arg => cpfMask(arg).isComplete as boolean, {path: ['personal.cpf'], message:'O CPF precisa ser válido'}),
+      phone: z.string().refine(arg => phoneNumberMask(arg).isComplete as boolean, { message:'O número precisa ser válido'}),
+      cpf: z.string().refine(arg => cpfMask(arg).isComplete as boolean, { message:'O CPF precisa ser válido'}),
       bornDate: z.any(),
       gender: z.enum(['male', 'female', 'other']),
     }),
     address: z.object({
-      cep: z.string().refine(arg => phoneNumberMask(arg).isComplete as boolean, {path: ['address.cep'], message:'O número precisa ser válido'}),
+      cep: z.string().refine(arg => cepMask(arg).isComplete as boolean, { message:'O cep precisa ser válido'}),
       city: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
       uf: z.string().length(2, 'Insira uma UF valida'),
       district: z
@@ -87,12 +88,13 @@ export default function Home(): JSX.Element {
   const cpfValue = watch('personal.cpf')
   const cepValue = watch('address.cep')
 
-  useEffect(() => setValue('personal.phone', phoneNumberMask(phoneValue).value), [phoneValue])
-  useEffect(() => setValue('personal.cpf', cpfMask(cpfValue).value), [cpfValue])
-  useEffect(() => setValue('address.cep', cepMask(cepValue).value), [cepValue])
+  useEffect(() => { if (phoneValue) setValue('personal.phone', phoneNumberMask(phoneValue).value)}, [phoneValue])
+  useEffect(() => { if (cpfValue) setValue('personal.cpf', cpfMask(cpfValue).value)}, [cpfValue])
+  useEffect(() => { if (cepValue) setValue('address.cep', cepMask(cepValue).value)}, [cepValue])
   
   const [activeStep, setActiveStep] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
+  console.log(errors)
 
   const onSubmitError = (): void => {
     console.log(errors[stepToFormProp[activeStep]])
@@ -138,6 +140,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='personal.firstName'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -153,6 +156,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='personal.lastName'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -169,14 +173,11 @@ export default function Home(): JSX.Element {
               <Controller
                 name='personal.phone'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
                     variant='outlined'
-                    /* value={phoneNumberMask(phone)}
-                    onChange={(e) => {
-                      setPhone(e.target.value)
-                    }} */
                     id='outlined-require'
                     label='Telefone'
                     error={errors?.personal?.phone !== undefined}
@@ -189,6 +190,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='personal.cpf'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -198,10 +200,6 @@ export default function Home(): JSX.Element {
                     error={errors?.personal?.cpf !== undefined}
                     helperText={errors?.personal?.cpf?.message ?? ''}
                     required
-                    /* value={cpfMask(cpf)}
-                    onChange={(e) => {
-                      setCPF(e.target.value)
-                    }} */
                   />
                 )}
               />
@@ -209,6 +207,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='personal.bornDate'
                 control={control}
+                defaultValue={null}
                 render={({ field }) => <BasicDatePicker fields={field} />}
               />
 
@@ -217,6 +216,7 @@ export default function Home(): JSX.Element {
                 <Controller
                   name='personal.gender'
                   control={control}
+                  defaultValue='male'
                   render={({ field }) => (
                     <RadioGroup
                       {...field}
@@ -240,6 +240,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='address.cep'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -255,6 +256,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='address.city'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -270,6 +272,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='address.uf'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -285,6 +288,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='address.district'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -300,6 +304,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='address.street'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -315,6 +320,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='address.streetNumber'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -330,6 +336,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='address.complement'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -349,6 +356,7 @@ export default function Home(): JSX.Element {
               <Controller
                 name='account.email'
                 control={control}
+                defaultValue=''
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -368,6 +376,7 @@ export default function Home(): JSX.Element {
                 <Controller
                   name='account.password'
                   control={control}
+                  defaultValue=''
                   render={({ field }) => (
                     <OutlinedInput
                       required
@@ -399,6 +408,7 @@ export default function Home(): JSX.Element {
                 <Controller
                   name='account.passwordConfirm'
                   control={control}
+                  defaultValue=''
                   render={({ field }) => (
                     <OutlinedInput
                       required

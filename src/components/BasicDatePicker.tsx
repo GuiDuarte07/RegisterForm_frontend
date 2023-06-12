@@ -8,7 +8,7 @@ export default function BasicDatePicker({fields}: {fields: any}): JSX.Element {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <DemoContainer components={['DatePicker']}>
-        <DatePicker {...fields} label='Data de nascimento' />
+        <DatePicker {...fields} format='DD/MM/YYYY' label='Data de nascimento' />
       </DemoContainer>
     </LocalizationProvider>
   );
