@@ -29,6 +29,7 @@ import { Controller, type SubmitHandler, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import dayjs from 'dayjs'
+import { getCepData } from '@/utils/getCep'
 
 const steps = ['Dados Pessoas', 'Endereço', 'Informações de acesso']
 
@@ -45,7 +46,7 @@ const schemaForm = z
         .regex(/[\p{Letter}\s]+/gu, 'Só pode conter letras'),
       phone: z.string().refine(arg => phoneNumberMask(arg).isComplete as boolean, { message:'O número precisa ser válido'}),
       cpf: z.string().refine(arg => cpfMask(arg).isComplete as boolean, { message:'O CPF precisa ser válido'}),
-      bornDate: z.any(),
+      bornDate: z.any().transform((arg) => dayjs(arg).format('DD/MM/YYYY')),
       gender: z.enum(['male', 'female', 'other']),
     }),
     address: z.object({
@@ -75,6 +76,7 @@ type FormProps = z.infer<typeof schemaForm>
 
 const stepToFormProp: ['personal', 'address', 'account'] = ['personal', 'address', 'account']
 
+
 export default function Home(): JSX.Element {
   const {
     control,
@@ -90,7 +92,28 @@ export default function Home(): JSX.Element {
 
   useEffect(() => { if (phoneValue) setValue('personal.phone', phoneNumberMask(phoneValue).value)}, [phoneValue])
   useEffect(() => { if (cpfValue) setValue('personal.cpf', cpfMask(cpfValue).value)}, [cpfValue])
-  useEffect(() => { if (cepValue) setValue('address.cep', cepMask(cepValue).value)}, [cepValue])
+  useEffect(() => 
+    {
+      if (!cepValue) return
+
+      const cepMasked: any = cepMask(cepValue)
+
+      console.log(cepMasked.unmaskedValue)
+
+      if (cepMasked.isComplete) {
+        getCepData(cepMasked.unmaskedValue as string).then(address => {
+          const {bairro, localidade, logradouro, complemento, uf} = address;
+
+          setValue('address.city', localidade ?? '')
+          setValue('address.district', bairro ?? '')
+          setValue('address.street', logradouro ?? '')
+          setValue('address.complement', complemento ?? '')
+          setValue('address.uf', uf ?? '')
+        })
+      }
+      setValue('address.cep', cepMasked.value)
+    }
+  , [cepValue])
   
   const [activeStep, setActiveStep] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
