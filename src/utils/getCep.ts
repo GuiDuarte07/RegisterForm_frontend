@@ -12,8 +12,26 @@ type CepAddress = {
   erro: boolean | undefined
 }
 
+export interface ICepAddressUtil {
+  cep: string
+  logradouro: string | undefined
+  complemento: string | undefined
+  bairro: string | undefined
+  localidade: string | undefined
+  uf: string | undefined
+}
+
+export interface ICepSetValues {
+  localidade: string | undefined
+  bairro: string | undefined
+  logradouro: string | undefined
+  complemento: string | undefined
+  uf: string | undefined
+}
+
 export async function getCepData(cep: string): Promise<CepAddress> {
   try {
+    console.log('fez uma requisicao')
     const data = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
     const cepAddress = await data.json()
     return cepAddress

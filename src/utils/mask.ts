@@ -20,6 +20,5 @@ export function cepMask(cep: string): IMask.MaskedPattern<string> {
   const mask = new IMask.MaskedPattern({ mask: '00000-000' })
 
   mask.unmaskedValue = cep ?? ''
-
   return mask
 }

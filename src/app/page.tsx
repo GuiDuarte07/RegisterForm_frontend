@@ -24,12 +24,12 @@ import {
 } from '@mui/material'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import Visibility from '@mui/icons-material/Visibility'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Controller, type SubmitHandler, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import dayjs from 'dayjs'
-import { getCepData } from '@/utils/getCep'
+import { ICepAddressUtil, ICepSetValues, getCepData } from '@/utils/getCep'
 
 const steps = ['Dados Pessoas', 'Endereço', 'Informações de acesso']
 
@@ -44,20 +44,22 @@ const schemaForm = z
         .string()
         .min(4, 'Insira um nome válido')
         .regex(/[\p{Letter}\s]+/gu, 'Só pode conter letras'),
-      phone: z.string().refine(arg => phoneNumberMask(arg).isComplete as boolean, { message:'O número precisa ser válido'}),
-      cpf: z.string().refine(arg => cpfMask(arg).isComplete as boolean, { message:'O CPF precisa ser válido'}),
+      phone: z
+        .string()
+        .refine((arg) => phoneNumberMask(arg).isComplete as boolean, { message: 'O número precisa ser válido' }),
+      cpf: z.string().refine((arg) => cpfMask(arg).isComplete as boolean, { message: 'O CPF precisa ser válido' }),
       bornDate: z.any().transform((arg) => dayjs(arg).format('DD/MM/YYYY')),
       gender: z.enum(['male', 'female', 'other']),
     }),
     address: z.object({
-      cep: z.string().refine(arg => cepMask(arg).isComplete as boolean, { message:'O cep precisa ser válido'}),
+      cep: z.string().refine((arg) => cepMask(arg).isComplete as boolean, { message: 'O cep precisa ser válido' }),
       city: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
       uf: z.string().length(2, 'Insira uma UF valida'),
       district: z
         .string()
-        .min(3, 'Tamanho minimo desse campo e 3')
+        .min(3, 'Tamanho minimo desse campo e 2')
         .max(60, 'Quantidade de digitos ultrapassou o limite'),
-      street: z.string().min(3, 'Tamanho minimo desse campo e 3').max(60, 'Quantidade de digitos ultrapassou o limite'),
+      street: z.string().min(3, 'Tamanho minimo desse campo e 2').max(60, 'Quantidade de digitos ultrapassou o limite'),
       streetNumber: z.string().regex(/^\d+$/, 'Só pode conter números'),
       complement: z.string().max(60, 'Quantidade de digitos ultrapassou o limite').optional(),
     }),
@@ -69,13 +71,12 @@ const schemaForm = z
   })
   .refine((data) => data.account.password === data.account.passwordConfirm, {
     message: 'As senhas não conferem',
-    path: ['account.passwordConfirm'], // path of error
+    path: ['account.passwordConfirm'],
   })
 
 type FormProps = z.infer<typeof schemaForm>
 
 const stepToFormProp: ['personal', 'address', 'account'] = ['personal', 'address', 'account']
-
 
 export default function Home(): JSX.Element {
   const {
@@ -86,53 +87,92 @@ export default function Home(): JSX.Element {
     formState: { errors },
   } = useForm<FormProps>({ resolver: zodResolver(schemaForm) })
 
-  const phoneValue = watch('personal.phone');
+
+  /* 
+    Como telefone, cpf e cep leva uma máscara, usamos o watch do react hook form para ter um controle desses campos em tempo
+    de digitação, assim, podemos usar o setValue para colocar a máscara neles em toda key press.
+  */
+  const phoneValue = watch('personal.phone')
   const cpfValue = watch('personal.cpf')
   const cepValue = watch('address.cep')
 
-  useEffect(() => { if (phoneValue) setValue('personal.phone', phoneNumberMask(phoneValue).value)}, [phoneValue])
-  useEffect(() => { if (cpfValue) setValue('personal.cpf', cpfMask(cpfValue).value)}, [cpfValue])
-  useEffect(() => 
-    {
-      if (!cepValue) return
+  /*  
+    Para não sobrecarregar a API do cep, criei essa ref para armazenar os dados de ceps já preenchidos e não ter que
+    consultar a API novamente, funcionando como um cache.
+  */
+  const cepsCache = useRef<ICepAddressUtil[]>([])
 
-      const cepMasked: any = cepMask(cepValue)
+  const setAddressValues = ({ localidade, bairro, logradouro, complemento, uf }: ICepSetValues) => {
+    setValue('address.city', localidade ?? '')
+    setValue('address.district', bairro ?? '')
+    setValue('address.street', logradouro ?? '')
+    setValue('address.complement', complemento ?? '')
+    setValue('address.uf', uf ?? '')
+  }
 
-      console.log(cepMasked.unmaskedValue)
+  useEffect(() => {
+    if (phoneValue) setValue('personal.phone', phoneNumberMask(phoneValue).value)
+  }, [phoneValue])
 
-      if (cepMasked.isComplete) {
-        getCepData(cepMasked.unmaskedValue as string).then(address => {
-          const {bairro, localidade, logradouro, complemento, uf} = address;
+  useEffect(() => {
+    if (cpfValue) setValue('personal.cpf', cpfMask(cpfValue).value)
+  }, [cpfValue])
 
-          setValue('address.city', localidade ?? '')
-          setValue('address.district', bairro ?? '')
-          setValue('address.street', logradouro ?? '')
-          setValue('address.complement', complemento ?? '')
-          setValue('address.uf', uf ?? '')
-        })
+  /* 
+    Esse useEffect é especial porque ele vai ficar escutando se o campo cep for preenchido totalmente e executar o fetch para
+    a API do cep e preenchimento dos campos de endereço, junto com a lógica de cache de ceps já preenchidos.
+  */
+  useEffect(() => {
+    if (!cepValue) return
+    const cepMasked: any = cepMask(cepValue)
+
+    const unmaskedCep: string = cepMasked.unmaskedValue
+    const maskedCep: string = cepMasked.value
+
+    setValue('address.cep', maskedCep)
+
+    if (cepMasked.isComplete) {
+      const cepAlreadyExist = cepsCache.current.find(({cep}) => cep === maskedCep);
+      if (cepAlreadyExist) {
+        setAddressValues(cepAlreadyExist)
+        return
       }
-      setValue('address.cep', cepMasked.value)
+
+      getCepData(unmaskedCep).then((address) => {
+        const { bairro, localidade, logradouro, complemento, uf } = address
+
+        setAddressValues(address)
+
+        cepsCache.current.push({ cep: maskedCep, bairro, localidade, logradouro, complemento, uf })
+      })
     }
-  , [cepValue])
+  }, [cepValue])
   
-  const [activeStep, setActiveStep] = useState(0)
+  // Esse useState é para controlar o elemento Stepper do MUI
+  const [activeStep, setActiveStep] = useState(1)
+
   const [showPassword, setShowPassword] = useState(false)
-  console.log(errors)
 
   const onSubmitError = (): void => {
-    console.log(errors[stepToFormProp[activeStep]])
+    /* 
+      Quando der erro no submit existe duas possibilidades:
+      1. Não é a ultima página do formulario, pois a forma como foi programado o submit, quando clica em próximo
+      para seguir o prenchimento do formulário, todos os campos são validados, incluindo os que não foram preenchidos
+      ainda, nesse caso, só verificamos o erro daquela página para trás e seguimos para a próxima caso não tenha.
+      2. Algum campo da ultima página do formulário está incorreta.
+    */
     if (errors[stepToFormProp[activeStep]] !== undefined) return
 
     if (activeStep !== 2) handleNextActiveStep()
-    
   }
 
   const onSubmit: SubmitHandler<FormProps> = (data) => {
+    // If apenas para prevenção de bugs
     if (activeStep !== 2) {
       handleNextActiveStep()
       return
     }
-    console.log('tudo certo')
+    alert('Recebemos seus dados!')
     console.log(data)
   }
 
@@ -457,15 +497,17 @@ export default function Home(): JSX.Element {
                 />
               </FormControl>
 
-              <FormHelperText error={errors?.account?.password === undefined ? true : errors?.account?.passwordConfirm !== undefined}>
-                {errors?.account?.password?.message  ?? errors?.account?.passwordConfirm?.message ?? ''}
+              <FormHelperText
+                error={errors?.account?.password === undefined ? true : errors?.account?.passwordConfirm !== undefined}
+              >
+                {errors?.account?.password?.message ?? errors?.account?.passwordConfirm?.message ?? ''}
               </FormHelperText>
             </>
           )}
 
           <div className='flex gap-8 justify-end'>
             {activeStep !== 0 && <Button onClick={handlePrevActiveStep}>Voltar</Button>}
-            <Button type='submit' >{activeStep === steps.length - 1 ? 'Finalizar' : 'Proximo'}</Button>
+            <Button type='submit'>{activeStep === steps.length - 1 ? 'Finalizar' : 'Proximo'}</Button>
           </div>
         </form>
       </Stack>
